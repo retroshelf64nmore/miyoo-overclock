@@ -337,17 +337,22 @@ static int json_str(const char *json, const char *key, char *out, size_t n)
 }
 
 // ---------------------------------------------------------------- model
-enum { DEV_AUTO, DEV_MINI, DEV_MINI_V4, DEV_PLUS, DEV_PLUS_V2 };
-static const char *DEVNAMES[] = { "Auto", "Miyoo Mini (v1-v3)", "Miyoo Mini v4", "Miyoo Mini Plus", "Miyoo Mini Plus V2 (RK3562)" };
-static const char *DEVSHORT[] = { "", "Mini", "Mini v4", "Mini Plus", "Mini Plus V2" };
+// Numbers are saved in settings.txt, so new models go on the end; DEV_ORDER is the order people see.
+enum { DEV_AUTO, DEV_MINI, DEV_MINI_V4, DEV_PLUS, DEV_PLUS_V2, DEV_FLIP, NDEV };
+static const char *DEVNAMES[] = { "Auto", "Miyoo Mini (v1-v3)", "Miyoo Mini v4", "Miyoo Mini Plus", "Miyoo Mini Plus V2 (RK3562)", "Miyoo Mini Flip" };
+static const char *DEVSHORT[] = { "", "Mini", "Mini v4", "Mini Plus", "Mini Plus V2", "Mini Flip" };
+static const int DEV_ORDER[NDEV] = { DEV_AUTO, DEV_MINI, DEV_MINI_V4, DEV_FLIP, DEV_PLUS, DEV_PLUS_V2 };
+static int dev_pos(int d) { for (int i = 0; i < NDEV; i++) if (DEV_ORDER[i] == d) return i; return 0; }
 static int dev_choice, dev_detected;
 static int dev(void) { return dev_choice ? dev_choice : dev_detected; }
 // Zones follow Onion's FAQ: Mini 1600 recommended / 1700 max stable, Mini Plus 1800 / 1900
 // (a Mini v3 here froze Neo Geo at 1700 while 1600 ran everything).
 // The Plus V2's Rockchip RK3562 (4x Cortex-A53) is rated up to 2.0 GHz; Onion doesn't run on it yet.
-static int green_max(void) { return dev() == DEV_PLUS_V2 ? 2000 : dev() == DEV_PLUS ? 1800 : 1600; }
-static int yellow_max(void) { return dev() == DEV_PLUS_V2 ? 2000 : dev() == DEV_PLUS ? 1900 : 1700; }
-static int max_mhz(void) { return dev() == DEV_PLUS ? 2100 : dev() == DEV_PLUS_V2 ? 2000 : 1900; }
+// The Mini Flip (Onion model 285) gets the Plus tier: Onion's Flip build caps its OC hotkey at 1800, like the Plus.
+static int plus_tier(void) { return dev() == DEV_PLUS || dev() == DEV_FLIP; }
+static int green_max(void) { return dev() == DEV_PLUS_V2 ? 2000 : plus_tier() ? 1800 : 1600; }
+static int yellow_max(void) { return dev() == DEV_PLUS_V2 ? 2000 : plus_tier() ? 1900 : 1700; }
+static int max_mhz(void) { return plus_tier() ? 2100 : dev() == DEV_PLUS_V2 ? 2000 : 1900; }
 #define MIN_MHZ 600
 #define STOCK_MHZ 1200
 
@@ -372,7 +377,8 @@ static void detect_device(void)
     if (f) { if (fscanf(f, "%d", &model) != 1) model = 0; fclose(f); }
     snprintf(p, sizeof p, "%s/screen_resolution", TMP);
     if ((f = fopen(p, "r"))) { if (fscanf(f, "%31s", res) != 1) res[0] = 0; fclose(f); }
-    dev_detected = model == 354 ? DEV_PLUS : !strcmp(res, "752x560") ? DEV_MINI_V4 : model == 283 ? DEV_MINI : 0;
+    // the Flip shares the v4's 752x560 screen, so check its model number first
+    dev_detected = model == 354 ? DEV_PLUS : model == 285 ? DEV_FLIP : !strcmp(res, "752x560") ? DEV_MINI_V4 : model == 283 ? DEV_MINI : 0;
     if (!dev_detected) {                        // no Onion files: look for the V2's Rockchip SoC
 #ifdef PREVIEW
         snprintf(p, sizeof p, "%s/compatible", TMP);
@@ -572,7 +578,7 @@ static void load_settings(void)
     char p[600]; snprintf(p, sizeof p, "%s/settings.txt", appdir);
     FILE *f = fopen(p, "r");
     if (f) {
-        if (fscanf(f, "device %d warned %d", &dev_choice, &warned) < 1 || dev_choice < 0 || dev_choice > DEV_PLUS_V2) dev_choice = 0;
+        if (fscanf(f, "device %d warned %d", &dev_choice, &warned) < 1 || dev_choice < 0 || dev_choice >= NDEV) dev_choice = 0;
         fclose(f);
     }
 }
@@ -814,17 +820,18 @@ static int pick_device, pick_sel;
 static void draw_picker(void)
 {
     Face *ui = face(H / 22), *sm = face(H / 28);
-    int rowh = ui->lineh + H / 60, pw = W * 74 / 100, ph = ui->lineh * 2 + rowh * (DEV_PLUS_V2 + 1) + sm->lineh + H / 14;
+    int rowh = ui->lineh + H / 60, pw = W * 74 / 100, ph = ui->lineh * 2 + rowh * NDEV + sm->lineh + H / 14;
     int x = (W - pw) / 2, y = (H - ph) / 2;
     darken(170);
     rrect(x, y, pw, ph, H / 40, C_PANEL);
     draw_center(ui, W / 2, y + H / 40 + ui->asc, "Choose your model", C_FG);
     int ry = y + H / 40 + ui->lineh * 3 / 2;
-    for (int d = 0; d <= DEV_PLUS_V2; d++, ry += rowh) {
+    for (int i = 0; i < NDEV; i++, ry += rowh) {
+        int d = DEV_ORDER[i];
         char s[96];
         if (d == DEV_AUTO) snprintf(s, sizeof s, "Auto  (%s)", dev_detected ? DEVNAMES[dev_detected] : "not detected");
         else snprintf(s, sizeof s, "%s", DEVNAMES[d]);
-        if (d == pick_sel) rrect(x + H / 40, ry, pw - H / 20, rowh, H / 70, C_SEL);
+        if (i == pick_sel) rrect(x + H / 40, ry, pw - H / 20, rowh, H / 70, C_SEL);
         if (d == dev_choice) { int r = H / 90; rrect(x + H / 40 + H / 60, ry + rowh / 2 - r, r * 2, r * 2, r, C_ACCENT); }   // current choice
         draw_str(ui, x + H / 40 + H / 60 + H / 30, ry + (rowh - ui->lineh) / 2 + ui->asc, s, d == DEV_AUTO && !dev_detected ? C_DIM : C_FG);
     }
@@ -909,11 +916,9 @@ static void change(int delta)
 {
     Item *it = &items[sel];
     if (it->kind == I_DEVICE) {
-        int d = dev_choice + (delta > 0 ? 1 : -1);
-        if (d < 0) d = DEV_PLUS_V2;
-        if (d > DEV_PLUS_V2) d = 0;
-        if (d == 0 && !dev_detected) d = delta > 0 ? 1 : DEV_PLUS_V2;
-        dev_choice = d;
+        int i = (dev_pos(dev_choice) + (delta > 0 ? 1 : NDEV - 1)) % NDEV;
+        if (i == 0 && !dev_detected) i = delta > 0 ? 1 : NDEV - 1;         // no "Auto" without a detected model
+        dev_choice = DEV_ORDER[i];
         return;
     }
     int *v = it->kind == I_ALL ? &universal : it->kind == I_ROW ? &rows[it->row].value : NULL;
@@ -947,9 +952,9 @@ static int handle(int k)                     // 0 = quit
         return 1;
     }
     if (pick_device) {
-        if (k == K_UP) pick_sel = pick_sel > 0 ? pick_sel - 1 : DEV_PLUS_V2;
-        else if (k == K_DOWN) pick_sel = pick_sel < DEV_PLUS_V2 ? pick_sel + 1 : 0;
-        else if (k == K_A) { if (pick_sel != DEV_AUTO || dev_detected) dev_choice = pick_sel; pick_device = 0; }
+        if (k == K_UP) pick_sel = (pick_sel + NDEV - 1) % NDEV;
+        else if (k == K_DOWN) pick_sel = (pick_sel + 1) % NDEV;
+        else if (k == K_A) { if (pick_sel || dev_detected) dev_choice = DEV_ORDER[pick_sel]; pick_device = 0; }
         else if (k == K_B || k == K_MENU) pick_device = 0;
         return 1;
     }
@@ -963,7 +968,7 @@ static int handle(int k)                     // 0 = quit
     case K_X: set_default(); break;
     case K_A:
         if (items[sel].kind == I_RESTORE) confirm_restore = 1;
-        else if (items[sel].kind == I_DEVICE) { pick_device = 1; pick_sel = dev_choice; }
+        else if (items[sel].kind == I_DEVICE) { pick_device = 1; pick_sel = dev_pos(dev_choice); }
         break;
     case K_START: show_help = 1; break;
     case K_SELECT: return -1;

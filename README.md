@@ -14,13 +14,13 @@ A CPU clock app for **Onion OS on the Miyoo Mini, Mini v4 and Mini Plus**. Set o
   - Systems that share an emulator share a row (e.g. Genesis / Master System / Game Gear).
   - A system whose launcher can pick between emulators gets a row for each, e.g. **Arcade (MAME 2003-Plus)** and **Arcade (FinalBurn Neo)**.
 - **DS and other non-RetroArch systems** that set their own clock in `launch.sh` (such as Drastic's `cpuclock 1500`) are listed too. The app edits that number.
-- **Automatic model detection.** To set it by hand, press A on **Device** and pick from the list: Mini (v1–v3), Mini v4, Mini Plus or Mini Plus V2 (see [Compatibility](#compatibility)).
+- **Automatic model detection.** To set it by hand, press A on **Device** and pick from the list: Mini (v1–v3), Mini v4, Mini Flip, Mini Plus or Mini Plus V2 (see [Compatibility](#compatibility)).
 - **Color zones:** the value, a dot and a gauge shift from green to yellow to orange as you go up.
 - **Restore original clocks:** the first launch saves every clock your card already had, and one option puts them all back. A system's `launch.sh` is also backed up before its first edit.
 
 | Likely to crash | Model detection | Restore |
 |---|---|---|
-| ![](screenshots/orange.png) | ![](screenshots/device.png) | ![](screenshots/restore.png) |
+| ![](screenshots/orange.png) | ![](screenshots/models.png) | ![](screenshots/restore.png) |
 
 | First-run warning | Controls | Mini Plus V2 |
 |---|---|---|
@@ -33,7 +33,7 @@ The zones follow the limits in the [Onion OS FAQ](https://onionui.github.io/docs
 | Model | Green (recommended) | Yellow (Onion's max stable) | Orange (likely to crash) |
 |---|---|---|---|
 | Mini v1–v4 | up to 1600 MHz | 1650–1700 | above 1700 |
-| Mini Plus | up to 1800 MHz | 1850–1900 | above 1900 |
+| Mini Plus, Mini Flip | up to 1800 MHz | 1850–1900 | above 1900 |
 
 Chips vary from unit to unit. One Mini v3 tested here froze in Neo Geo games at 1700 MHz but ran everything at 1600. If a game freezes, hold Power to restart, then lower that system's clock.
 
@@ -76,6 +76,7 @@ So the clocks keep working even if you remove the app. Nothing else on the card 
 
 - Tested on the **Miyoo Mini Plus** with Onion OS.
 - The Mini (v1–v3) and Mini v4 are detected and use the Mini zones. The v4's 752×560 screen is supported in layout, but hasn't been tested on hardware yet.
+- **Mini Flip** (Onion's Flip build, model 285): detected automatically and given the Mini Plus zones, since Onion's Flip build allows the same 1800 MHz as the Plus. It has the same chip as the other Minis, but hasn't been tested on a Flip yet.
 - **Mini Plus V2** (Rockchip RK3562): the app recognizes it, but Onion OS doesn't run on it yet, so its clocks won't apply. It says so on screen.
 
 ## Theme icons
