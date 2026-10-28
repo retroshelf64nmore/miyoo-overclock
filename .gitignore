@@ -1,0 +1,7 @@
+app/Overclock/overclock
+app/Overclock/settings.txt
+app/Overclock/backup/
+*.exe
+*.pdb
+frames/
+dist/

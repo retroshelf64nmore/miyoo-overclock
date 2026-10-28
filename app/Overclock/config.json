@@ -1,0 +1,7 @@
+{
+  "label": "Overclock",
+  "icon": "/mnt/SDCARD/App/Overclock/overclock.png",
+  "iconsel": "",
+  "launch": "launch.sh",
+  "description": "CPU clock for all systems or per system"
+}
