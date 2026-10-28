@@ -904,7 +904,7 @@ static void draw(void)
     fill(0, hy, W, HINT_H, C_PANEL);
     fill(0, hy, W, 1, C_LINE);
     const char *hint = toast[0] ? toast : dev() == DEV_PLUS_V2 ? "Mini Plus V2: no Onion support yet - clocks won't apply"
-                                                            : "Left/Right 50   L1/R1 200   X default   B save & quit   Start help";
+                                                            : "B save & quit    Select quit without saving    Start help";
     draw_center(sm, W / 2, hy + (HINT_H - sm->lineh) / 2 + sm->asc, hint, toast[0] ? C_ACCENT : dev() == DEV_PLUS_V2 ? C_ORANGE : C_DIM);
     if (show_help) draw_help();
     if (confirm_restore) draw_confirm();
