@@ -14,7 +14,7 @@ A CPU clock app for **Onion OS on the Miyoo Mini, Mini v4 and Mini Plus**. Set o
   - Systems that share an emulator share a row (e.g. Genesis / Master System / Game Gear).
   - A system whose launcher can pick between emulators gets a row for each, e.g. **Arcade (MAME 2003-Plus)** and **Arcade (FinalBurn Neo)**.
 - **DS and other non-RetroArch systems** that set their own clock in `launch.sh` (such as Drastic's `cpuclock 1500`) are listed too. The app edits that number.
-- **Automatic model detection**, with a manual override: Mini (v1–v3), Mini v4, Mini Plus, and Mini Plus V2 (see [Compatibility](#compatibility)).
+- **Automatic model detection.** To set it by hand, press A on **Device** and pick from the list: Mini (v1–v3), Mini v4, Mini Plus or Mini Plus V2 (see [Compatibility](#compatibility)).
 - **Color zones:** the value, a dot and a gauge shift from green to yellow to orange as you go up.
 - **Restore original clocks:** the first launch saves every clock your card already had, and one option puts them all back. A system's `launch.sh` is also backed up before its first edit.
 
@@ -53,7 +53,7 @@ There's no official per-system table. As a rough guide, light systems (NES, Game
 | Left / Right | Change by 50 MHz (hold to repeat) |
 | L1 / R1 | Change by 200 MHz |
 | X | Back to default (All systems, or stock for the All systems row) |
-| A | Restore originals (on that row) |
+| A | On **Device**: pick your model from a list. On **Restore original clocks**: put the card's original clocks back |
 | B or Menu | Save and quit |
 | Select | Quit without saving |
 | Start | Controls help |

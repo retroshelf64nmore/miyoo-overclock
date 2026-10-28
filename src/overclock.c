@@ -732,8 +732,8 @@ static void draw_panel(void)
     if (it->kind == I_DEVICE) {
         char s[96];
         draw_str(ui, MARGIN, ty + ui->asc - sm->asc, dev() ? DEVNAMES[dev()] : "Unknown model", C_FG);
-        snprintf(s, sizeof s, "%s", dev_detected ? (dev_choice ? "Set by hand. Left / Right to change, X for auto." : "Detected automatically. Left / Right to set by hand.")
-                                                : "Could not detect the model. Use Left / Right to pick yours.");
+        snprintf(s, sizeof s, "%s", dev_detected ? (dev_choice ? "Set by hand. A to pick another, X for auto." : "Detected automatically. A to pick a model by hand.")
+                                                : "Could not detect the model. Press A to pick yours.");
         draw_str(sm, MARGIN, ty + ui->lineh + sm->asc / 2, s, C_DIM);
         if (dev() == DEV_PLUS_V2) snprintf(s, sizeof s, "Onion OS doesn't run on the V2 yet, so these clocks won't apply.");
         else snprintf(s, sizeof s, "Color zones:  green up to %d   yellow up to %d   orange above", green_max(), yellow_max());
@@ -762,7 +762,7 @@ static void draw_help(void)
 {
     static const char *rows_[][2] = {
         { "Up / Down", "Choose a setting" }, { "Left / Right", "Change by 50 MHz" }, { "L1 / R1", "Change by 200 MHz" },
-        { "X", "Back to default (All systems / stock)" }, { "A", "Restore originals (on that row)" },
+        { "X", "Back to default (All systems / stock)" }, { "A", "Pick model / restore (on those rows)" },
         { "B or Menu", "Save and quit" }, { "Select", "Quit without saving" }, { "Start", "This help" },
     };
     int n = sizeof rows_ / sizeof rows_[0];
@@ -808,6 +808,27 @@ static void draw_warning(void)
     draw_center(sm, W / 2 - bw / 2 - W / 40, by + (bh - sm->lineh) / 2 + sm->asc, "A  I understand", C_BG);
     rrect(W / 2 + W / 40, by, bw, bh, bh / 2, C_LINE);
     draw_center(sm, W / 2 + bw / 2 + W / 40, by + (bh - sm->lineh) / 2 + sm->asc, "B  Quit", C_FG);
+}
+// Device picker: A on the Device row lists every model.
+static int pick_device, pick_sel;
+static void draw_picker(void)
+{
+    Face *ui = face(H / 22), *sm = face(H / 28);
+    int rowh = ui->lineh + H / 60, pw = W * 74 / 100, ph = ui->lineh * 2 + rowh * (DEV_PLUS_V2 + 1) + sm->lineh + H / 14;
+    int x = (W - pw) / 2, y = (H - ph) / 2;
+    darken(170);
+    rrect(x, y, pw, ph, H / 40, C_PANEL);
+    draw_center(ui, W / 2, y + H / 40 + ui->asc, "Choose your model", C_FG);
+    int ry = y + H / 40 + ui->lineh * 3 / 2;
+    for (int d = 0; d <= DEV_PLUS_V2; d++, ry += rowh) {
+        char s[96];
+        if (d == DEV_AUTO) snprintf(s, sizeof s, "Auto  (%s)", dev_detected ? DEVNAMES[dev_detected] : "not detected");
+        else snprintf(s, sizeof s, "%s", DEVNAMES[d]);
+        if (d == pick_sel) rrect(x + H / 40, ry, pw - H / 20, rowh, H / 70, C_SEL);
+        if (d == dev_choice) { int r = H / 90; rrect(x + H / 40 + H / 60, ry + rowh / 2 - r, r * 2, r * 2, r, C_ACCENT); }   // current choice
+        draw_str(ui, x + H / 40 + H / 60 + H / 30, ry + (rowh - ui->lineh) / 2 + ui->asc, s, d == DEV_AUTO && !dev_detected ? C_DIM : C_FG);
+    }
+    draw_center(sm, W / 2, y + ph - H / 40 - sm->lineh + sm->asc, "A  Choose        B  Cancel", C_ACCENT);
 }
 static void draw_confirm(void)
 {
@@ -880,6 +901,7 @@ static void draw(void)
     draw_center(sm, W / 2, hy + (HINT_H - sm->lineh) / 2 + sm->asc, hint, toast[0] ? C_ACCENT : dev() == DEV_PLUS_V2 ? C_ORANGE : C_DIM);
     if (show_help) draw_help();
     if (confirm_restore) draw_confirm();
+    if (pick_device) draw_picker();
     plat_present();
 }
 
@@ -924,6 +946,13 @@ static int handle(int k)                     // 0 = quit
         confirm_restore = 0;
         return 1;
     }
+    if (pick_device) {
+        if (k == K_UP) pick_sel = pick_sel > 0 ? pick_sel - 1 : DEV_PLUS_V2;
+        else if (k == K_DOWN) pick_sel = pick_sel < DEV_PLUS_V2 ? pick_sel + 1 : 0;
+        else if (k == K_A) { if (pick_sel != DEV_AUTO || dev_detected) dev_choice = pick_sel; pick_device = 0; }
+        else if (k == K_B || k == K_MENU) pick_device = 0;
+        return 1;
+    }
     switch (k) {
     case K_UP: do sel = sel > 0 ? sel - 1 : nitems - 1; while (items[sel].kind == I_HEADER); break;
     case K_DOWN: do sel = sel < nitems - 1 ? sel + 1 : 0; while (items[sel].kind == I_HEADER); break;
@@ -932,7 +961,10 @@ static int handle(int k)                     // 0 = quit
     case K_L1: change(-200); break;
     case K_R1: change(200); break;
     case K_X: set_default(); break;
-    case K_A: if (items[sel].kind == I_RESTORE) confirm_restore = 1; break;
+    case K_A:
+        if (items[sel].kind == I_RESTORE) confirm_restore = 1;
+        else if (items[sel].kind == I_DEVICE) { pick_device = 1; pick_sel = dev_choice; }
+        break;
     case K_START: show_help = 1; break;
     case K_SELECT: return -1;
     case K_B: case K_MENU: return 0;
